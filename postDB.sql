@@ -215,3 +215,27 @@ FROM Postmen P, WorksIn W, PostOffices O, Delivers D, Parcels Pr
 WHERE MATCH(O<-(W)-P-(D)->Pr)
 AND D.DeliveryStatus = N'В пути';
 
+SELECT 
+    P.FullName AS PostmanName,
+    STRING_AGG(O.City, ' -> ') WITHIN GROUP (GRAPH PATH) AS PathToCity
+FROM 
+    Postmen AS P,
+    Delivers FOR PATH AS d,
+    Parcels FOR PATH AS Pr,
+    StoredAt FOR PATH AS s,
+    PostOffices FOR PATH AS O
+WHERE MATCH(SHORTEST_PATH(P(-(d)->Pr-(s)->O){1,5}))
+AND P.PostmanID = 1;
+
+SELECT 
+    P.FullName AS Postman,
+    STRING_AGG(CAST(Pr.Type AS VARCHAR(MAX)), ' + ') WITHIN GROUP (GRAPH PATH) AS ParcelTypes,
+    STRING_AGG(CAST(O.City AS VARCHAR(MAX)), ' -> ') WITHIN GROUP (GRAPH PATH) AS TargetCities
+FROM 
+    Postmen AS P,
+    Delivers FOR PATH AS d,
+    Parcels FOR PATH AS Pr,
+    StoredAt FOR PATH AS s,
+    PostOffices FOR PATH AS O
+WHERE MATCH(SHORTEST_PATH(P(-(d)->Pr-(s)->O)+))
+AND P.FullName LIKE N'Иванов%';
